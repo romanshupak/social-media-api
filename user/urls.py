@@ -16,4 +16,5 @@ urlpatterns = [
     path("token/verify/", TokenVerifyView.as_view(), name="token_verify"),
     path("me/", ManageUserView.as_view(), name="manage"),
     path("logout/", LogoutView.as_view(), name="logout"),
+    path("profile/<int:id>/", ManageUserView.as_view(), name="user-profile"),  # Новий ендпоінт
 ]

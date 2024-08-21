@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from rest_framework import generics, status
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.decorators import action
@@ -16,9 +17,11 @@ class CreateUserView(generics.CreateAPIView):
 
 
 class ManageUserView(generics.RetrieveUpdateAPIView):
+    queryset = get_user_model().objects.all()  # new line
     serializer_class = UserSerializer
     authentication_classes = (JWTAuthentication,)
     permission_classes = (IsAuthenticated,)
+    lookup_field = "id"  # new line
 
     def get_object(self):
         return self.request.user
