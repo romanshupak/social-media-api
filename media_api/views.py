@@ -1,4 +1,4 @@
-from rest_framework import filters
+from rest_framework import filters, status
 
 from django.shortcuts import render
 from rest_framework import viewsets
@@ -19,9 +19,7 @@ class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter]
-    search_fields = [
-        "content",
-    ]
+    search_fields = ["content"]
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -41,10 +39,94 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(posts, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["POST"])
+    def like(self, request, pk=None):
+        post = self.get_object()
+        user = request.user
+        if Like.objects.filter(post=post, user=user).exists():
+            return Response(
+                {"error": "Post already liked"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        Like.objects.create(post=post, user=user)
+        return Response(
+            {"message": "Post liked successfully"}, status=status.HTTP_201_CREATED
+        )
 
-class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.all()
-    serializer_class = CommentSerializer
+    @action(detail=True, methods=["POST"])
+    def unlike(self, request, pk=None):
+        post = self.get_object()
+        user = request.user
+        like = Like.objects.filter(post=post, user=user).first()
+        if not like:
+            return Response(
+                {"error": "Post not liked"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        like.delete()
+        return Response(
+            {"message": "Post unliked successfully"}, status=status.HTTP_204_NO_CONTENT
+        )
+
+    @action(detail=False, methods=["GET"])
+    def liked_posts(self, request):
+        user = request.user
+        liked_posts = Post.objects.filter(likes__user=user)
+        serializer = self.get_serializer(liked_posts, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["POST"],
+        url_path="add-comment",
+        permission_classes=[IsAuthenticated],
+    )
+    def create_comment(self, request, pk=None):
+        """Create a comment for a specific post"""
+        post = self.get_object()
+        serializer = CommentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(author=self.request.user, post=post)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["GET"], permission_classes=[IsAuthenticated])
+    def comments(self, request, pk=None):
+        """Retrieve all comments for a specific post"""
+        post = self.get_object()
+        comments = Comment.objects.filter(post=post)
+        serializer = CommentSerializer(comments, many=True)
+        return Response(serializer.data)
+
+
+# class CommentViewSet(viewsets.ModelViewSet):
+#     queryset = Comment.objects.all()
+#     serializer_class = CommentSerializer
+#     permission_classes = [IsAuthenticated]
+
+# def perform_create(self, serializer):
+#     serializer.save(author=self.request.user)
+#
+# @action(detail=True, methods=["GET"], permission_classes=[IsAuthenticated])
+# def comments(self, request, pk=None):
+#     """Retrieve all comments for a specific post"""
+#     post = self.get_object()
+#     comments = Comment.objects.filter(post=post)
+#     serializer = self.get_serializer(comments, many=True)
+#     return Response(serializer.data)
+#
+# @action(
+#     detail=True,
+#     methods=["POST"],
+#     url_path="post/(?P<post_id>[^/.]+)/comments",
+#     permission_classes=[IsAuthenticated],
+# )
+# def create_comment(self, request, post_id=None):
+#     """Create a comment for a specific post"""
+#     post = Post.objects.get(pk=post_id)
+#     serializer = self.get_serializer(data=request.data)
+#     if serializer.is_valid():
+#         serializer.save(author=self.request.user, post=post)
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
+#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LikeViewSet(viewsets.ModelViewSet):

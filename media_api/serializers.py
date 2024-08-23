@@ -28,6 +28,7 @@ class CommentSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
+        read_only_fields = ("id", "author", "created_at", "updated_at")
 
 
 class LikeSerializer(serializers.ModelSerializer):
