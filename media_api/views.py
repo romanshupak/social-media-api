@@ -1,4 +1,9 @@
+from django.utils.dateparse import parse_datetime
 from rest_framework import filters, status
+from rest_framework.exceptions import PermissionDenied
+
+from media_api.tasks import create_scheduled_post
+
 
 from django.shortcuts import render
 from rest_framework import viewsets
@@ -24,6 +29,18 @@ class PostViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
+    def update(self, request, *args, **kwargs):
+        post = self.get_object()
+        if post.author != self.request.user:
+            raise PermissionDenied("You are allowed to edit only yours posts")
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        post = self.get_object()
+        if post.author != self.request.user:
+            raise PermissionDenied("You are allowed to delete only yours posts")
+        return super().destroy(request, *args, **kwargs)
+
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def my_posts(self, request):
         """Retrieve all posts of current user"""
@@ -39,7 +56,7 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(posts, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["POST"], permission_classes=[IsAuthenticated])
     def like(self, request, pk=None):
         post = self.get_object()
         user = request.user
@@ -52,7 +69,7 @@ class PostViewSet(viewsets.ModelViewSet):
             {"message": "Post liked successfully"}, status=status.HTTP_201_CREATED
         )
 
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["POST"], permission_classes=[IsAuthenticated])
     def unlike(self, request, pk=None):
         post = self.get_object()
         user = request.user
@@ -77,7 +94,6 @@ class PostViewSet(viewsets.ModelViewSet):
         detail=True,
         methods=["POST"],
         url_path="add-comment",
-        permission_classes=[IsAuthenticated],
     )
     def create_comment(self, request, pk=None):
         """Create a comment for a specific post"""
@@ -88,13 +104,59 @@ class PostViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=["GET"], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=["GET"])
     def comments(self, request, pk=None):
         """Retrieve all comments for a specific post"""
         post = self.get_object()
         comments = Comment.objects.filter(post=post)
         serializer = CommentSerializer(comments, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=["POST"], permission_classes=[IsAuthenticated])
+    def schedule_post(self, request):
+        """Запланувати створення посту"""
+        content = request.data.get("content")
+        scheduled_time_str = request.data.get("scheduled_time")
+
+        # Перетворення рядка в datetime
+        scheduled_time = parse_datetime(scheduled_time_str)
+
+        if not content or not scheduled_time:
+            return Response(
+                {"error": "Необхідно вказати контент і час публікації"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Планування завдання
+        create_scheduled_post.apply_async(
+            (content, request.user.id, scheduled_time), eta=scheduled_time
+        )
+
+        return Response(
+            {"message": "Пост буде створено у вказаний час"},
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        comment = self.get_object()
+        if comment.author != request.user:
+            raise PermissionDenied("You are allowed to edit only yours comments")
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        comment = self.get_object()
+        if comment.author != request.user:
+            raise PermissionDenied("You are allowed to delete only yours comments")
+        return super().destroy(request, *args, **kwargs)
 
 
 # class CommentViewSet(viewsets.ModelViewSet):

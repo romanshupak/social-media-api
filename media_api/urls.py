@@ -1,11 +1,11 @@
 from django.urls import path, include
 from rest_framework import routers
 
-from media_api.views import PostViewSet, LikeViewSet
+from media_api.views import PostViewSet, LikeViewSet, CommentViewSet
 
 router = routers.DefaultRouter()
 router.register("posts", PostViewSet)
-# router.register("comments", CommentViewSet)
+router.register("comments", CommentViewSet)
 router.register("likes", LikeViewSet)
 
 

@@ -26,6 +26,15 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         return self.request.user
 
+    def destroy(self, request, *args, **kwargs):
+        """User allowed to delete only his own profile"""
+        user = self.get_object()
+        user.delete()
+        return Response(
+            {"message": "Profile deleted successfully"},
+            status=status.HTTP_204_NO_CONTENT,
+        )
+
     @action(
         methods=["POST"],
         detail=False,
