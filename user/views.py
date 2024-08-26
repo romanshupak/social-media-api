@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import generics, status, filters
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -12,10 +14,23 @@ from user.serializers import UserSerializer, ImageUploadSerializer
 User = get_user_model()
 
 
+@extend_schema(
+    summary="Create a new user",
+    description="This endpoint allows you to create"
+    " a new user by providing the necessary information.",
+    request=UserSerializer,
+    responses={200: UserSerializer},
+)
 class CreateUserView(generics.CreateAPIView):
     serializer_class = UserSerializer
 
 
+@extend_schema(
+    summary="Retrieve and update user profile",
+    description="This endpoint allows an authenticated user to retrieve"
+    " and update their own profile. ",
+    responses={200: UserSerializer},
+)
 class ManageUserView(generics.RetrieveUpdateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -26,6 +41,12 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         return self.request.user
 
+    @extend_schema(
+        summary="Delete own profile",
+        description="This endpoint allows the authenticated"
+        " user to delete their own profile.",
+        responses={204: {"message": "Profile deleted successfully"}},
+    )
     def destroy(self, request, *args, **kwargs):
         """User allowed to delete only his own profile"""
         user = self.get_object()
@@ -126,8 +147,23 @@ class LogoutView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema(
+    parameters=[
+        OpenApiParameter(
+            "search",
+            type=OpenApiTypes.STR,
+            description="Filter users by email or bio (ex. ?search=example)",
+        ),
+    ],
+    responses={
+        200: UserSerializer(many=True),
+        400: {"description": "Bad Request"},
+    },
+    summary="Search Users",
+    description="Search for users by email or bio using a query parameter `search`.",
+)
 class UserSearchView(generics.ListAPIView):
-    queryset = User.objects.all()
+    queryset = User.objects.prefetch_related("followers", "following").all()
     serializer_class = UserSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ["email", "bio"]  # Поля, за якими можна здійснювати пошук
+    search_fields = ["email", "bio"]

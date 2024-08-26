@@ -20,7 +20,9 @@ from media_api.serializers import (
 
 
 class PostViewSet(viewsets.ModelViewSet):
-    queryset = Post.objects.all()
+    queryset = Post.objects.select_related("author").prefetch_related(
+        "comments", "likes"
+    )
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter]
@@ -44,7 +46,11 @@ class PostViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def my_posts(self, request):
         """Retrieve all posts of current user"""
-        posts = Post.objects.filter(author=request.user)
+        posts = (
+            Post.objects.filter(author=request.user)
+            .select_related("author")
+            .prefetch_related("comments", "likes")
+        )
         serializer = self.get_serializer(posts, many=True)
         return Response(serializer.data)
 
@@ -52,7 +58,11 @@ class PostViewSet(viewsets.ModelViewSet):
     def following_posts(self, request):
         """Retrieve all posts of users they are following"""
         following_users = request.user.following.all()
-        posts = Post.objects.filter(author__in=following_users)
+        posts = (
+            Post.objects.filter(author__in=following_users)
+            .select_related("author")
+            .prefetch_related("comments", "likes")
+        )
         serializer = self.get_serializer(posts, many=True)
         return Response(serializer.data)
 
@@ -139,7 +149,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
 
 class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.all()
+    queryset = Comment.objects.all.select_related("author", "post")
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
 
@@ -159,38 +169,6 @@ class CommentViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
 
-# class CommentViewSet(viewsets.ModelViewSet):
-#     queryset = Comment.objects.all()
-#     serializer_class = CommentSerializer
-#     permission_classes = [IsAuthenticated]
-
-# def perform_create(self, serializer):
-#     serializer.save(author=self.request.user)
-#
-# @action(detail=True, methods=["GET"], permission_classes=[IsAuthenticated])
-# def comments(self, request, pk=None):
-#     """Retrieve all comments for a specific post"""
-#     post = self.get_object()
-#     comments = Comment.objects.filter(post=post)
-#     serializer = self.get_serializer(comments, many=True)
-#     return Response(serializer.data)
-#
-# @action(
-#     detail=True,
-#     methods=["POST"],
-#     url_path="post/(?P<post_id>[^/.]+)/comments",
-#     permission_classes=[IsAuthenticated],
-# )
-# def create_comment(self, request, post_id=None):
-#     """Create a comment for a specific post"""
-#     post = Post.objects.get(pk=post_id)
-#     serializer = self.get_serializer(data=request.data)
-#     if serializer.is_valid():
-#         serializer.save(author=self.request.user, post=post)
-#         return Response(serializer.data, status=status.HTTP_201_CREATED)
-#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 class LikeViewSet(viewsets.ModelViewSet):
-    queryset = Like.objects.all()
+    queryset = Like.objects.select_related("user", "post")
     serializer_class = LikeSerializer
