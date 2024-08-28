@@ -11,11 +11,11 @@ router.register("likes", LikeViewSet)
 
 urlpatterns = [
     path("", include(router.urls)),
-    # path(
-    #     "posts/<int:post_pk>/comments/",
-    #     CommentViewSet.as_view({"post": "create"}),
-    #     name="post-comments",
-    # ),
+    path(
+        "posts/<int:post_id>/add-comment/",
+        PostViewSet.as_view({"post": "create_comment"}),
+        name="post-add-comment",
+    ),
 ]
 
 app_name = "media_api"

@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "media_api",
     "user",
+    "django_celery_beat",
 ]
 
 MIDDLEWARE = [
@@ -83,8 +84,12 @@ WSGI_APPLICATION = "social_media_api.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "postgres",
+        "USER": "postgres",
+        "PASSWORD": "warhammer40000",
+        "HOST": "localhost",
+        "PORT": "5433",
     }
 }
 

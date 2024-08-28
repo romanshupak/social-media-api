@@ -124,7 +124,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["POST"], permission_classes=[IsAuthenticated])
     def schedule_post(self, request):
-        """Запланувати створення посту"""
+        """Schedule creation of post"""
         content = request.data.get("content")
         scheduled_time_str = request.data.get("scheduled_time")
 
@@ -133,7 +133,10 @@ class PostViewSet(viewsets.ModelViewSet):
 
         if not content or not scheduled_time:
             return Response(
-                {"error": "Необхідно вказати контент і час публікації"},
+                {
+                    "error": "It is necessary to fill out "
+                    "content and time of scheduled post"
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -143,7 +146,7 @@ class PostViewSet(viewsets.ModelViewSet):
         )
 
         return Response(
-            {"message": "Пост буде створено у вказаний час"},
+            {"message": "Post will be created in scheduled time"},
             status=status.HTTP_202_ACCEPTED,
         )
 
