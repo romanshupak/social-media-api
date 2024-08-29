@@ -126,7 +126,6 @@ class ListFollowersView(APIView):
 class LoginUserView(APIView):
     def post(self, request):
         """Handle user login"""
-        # Implementation for login can be here
 
 
 class LogoutView(APIView):

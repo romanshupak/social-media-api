@@ -21,7 +21,8 @@ class UserSerializer(serializers.ModelSerializer):
         if password:
             user.set_password(password)
             user.save()
-        user.followers.set(followers)
+        if followers is not None:
+            user.followers.set(followers)
         return user
 
     def update(self, instance, validated_data):
