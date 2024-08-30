@@ -31,7 +31,7 @@ class CreateUserView(generics.CreateAPIView):
     " and update their own profile. ",
     responses={200: UserSerializer},
 )
-class ManageUserView(generics.RetrieveUpdateAPIView):
+class ManageUserView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     authentication_classes = (JWTAuthentication,)
