@@ -6,14 +6,14 @@ from django.contrib.auth import get_user_model
 
 @shared_task
 def create_scheduled_post(content, user_id, scheduled_time):
-    User = get_user_model()
+    user = get_user_model()
     try:
-        user = User.objects.get(id=user_id)
+        user = user.objects.get(id=user_id)
         # Перевірка, чи настав час для створення посту
         if timezone.now() >= scheduled_time:
             Post.objects.create(author=user, content=content)
             return "Post created successfully"
         else:
             return "Scheduled time not reached yet"
-    except User.DoesNotExist:
+    except user.DoesNotExist:
         return "User not found"

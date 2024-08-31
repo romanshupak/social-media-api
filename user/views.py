@@ -64,7 +64,10 @@ class ManageUserView(generics.RetrieveUpdateDestroyAPIView):
     )
     def upload_image(self, request, *args, **kwargs):
         """Endpoint for uploading user profile image"""
-        serializer = ImageUploadSerializer(self.get_object(), data=request.data)
+        serializer = ImageUploadSerializer(
+            self.get_object(),
+            data=request.data
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -93,14 +96,19 @@ class FollowUnfollowView(APIView):
         if action == "follow":
             user.following.add(target_user)
             return Response(
-                {"message": "User followed successfully"}, status=status.HTTP_200_OK
+                {"message": "User followed successfully"},
+                status=status.HTTP_200_OK
             )
         elif action == "unfollow":
             user.following.remove(target_user)
             return Response(
-                {"message": "User unfollowed successfully"}, status=status.HTTP_200_OK
+                {"message": "User unfollowed successfully"},
+                status=status.HTTP_200_OK
             )
-        return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Invalid action"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class ListFollowingView(APIView):
@@ -138,12 +146,17 @@ class LogoutView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             token = RefreshToken(refresh_token)
-            token.blacklist()  # Анулюємо токен, якщо ви використовуєте blacklist
+            token.blacklist()
+            # terminate token in case you are using blacklist
             return Response(
-                {"message": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT
+                {"message": "Logout successful"},
+                status=status.HTTP_205_RESET_CONTENT
             )
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 @extend_schema(
@@ -159,7 +172,8 @@ class LogoutView(APIView):
         400: {"description": "Bad Request"},
     },
     summary="Search Users",
-    description="Search for users by email or bio using a query parameter `search`.",
+    description="Search for users by email or bio "
+    "using a query parameter `search`.",
 )
 class UserSearchView(generics.ListAPIView):
     queryset = User.objects.prefetch_related("followers", "following").all()

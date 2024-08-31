@@ -4,8 +4,6 @@ from rest_framework.exceptions import PermissionDenied
 
 from media_api.tasks import create_scheduled_post
 
-
-from django.shortcuts import render
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -40,10 +38,16 @@ class PostViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         post = self.get_object()
         if post.author != self.request.user:
-            raise PermissionDenied("You are allowed to delete only yours posts")
+            raise PermissionDenied(
+                "You are allowed to delete only yours posts"
+            )
         return super().destroy(request, *args, **kwargs)
 
-    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[IsAuthenticated]
+    )
     def my_posts(self, request):
         """Retrieve all posts of current user"""
         posts = (
@@ -54,7 +58,11 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(posts, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[IsAuthenticated]
+    )
     def following_posts(self, request):
         """Retrieve all posts of users they are following"""
         following_users = request.user.following.all()
@@ -66,31 +74,43 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(posts, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=["POST"], permission_classes=[IsAuthenticated])
+    @action(
+        detail=True,
+        methods=["POST"],
+        permission_classes=[IsAuthenticated]
+    )
     def like(self, request, pk=None):
         post = self.get_object()
         user = request.user
         if Like.objects.filter(post=post, user=user).exists():
             return Response(
-                {"error": "Post already liked"}, status=status.HTTP_400_BAD_REQUEST
+                {"error": "Post already liked"},
+                status=status.HTTP_400_BAD_REQUEST
             )
         Like.objects.create(post=post, user=user)
         return Response(
-            {"message": "Post liked successfully"}, status=status.HTTP_201_CREATED
+            {"message": "Post liked successfully"},
+            status=status.HTTP_201_CREATED
         )
 
-    @action(detail=True, methods=["POST"], permission_classes=[IsAuthenticated])
+    @action(
+        detail=True,
+        methods=["POST"],
+        permission_classes=[IsAuthenticated]
+    )
     def unlike(self, request, pk=None):
         post = self.get_object()
         user = request.user
         like = Like.objects.filter(post=post, user=user).first()
         if not like:
             return Response(
-                {"error": "Post not liked"}, status=status.HTTP_400_BAD_REQUEST
+                {"error": "Post not liked"},
+                status=status.HTTP_400_BAD_REQUEST
             )
         like.delete()
         return Response(
-            {"message": "Post unliked successfully"}, status=status.HTTP_204_NO_CONTENT
+            {"message": "Post unliked successfully"},
+            status=status.HTTP_204_NO_CONTENT
         )
 
     @action(detail=False, methods=["GET"])
@@ -122,7 +142,11 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer = CommentSerializer(comments, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=["POST"], permission_classes=[IsAuthenticated])
+    @action(
+        detail=False,
+        methods=["POST"],
+        permission_classes=[IsAuthenticated]
+    )
     def schedule_post(self, request):
         """Schedule creation of post"""
         content = request.data.get("content")
@@ -162,13 +186,17 @@ class CommentViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         comment = self.get_object()
         if comment.author != request.user:
-            raise PermissionDenied("You are allowed to edit only yours comments")
+            raise PermissionDenied(
+                "You are allowed to edit only yours comments"
+            )
         return super().update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
         comment = self.get_object()
         if comment.author != request.user:
-            raise PermissionDenied("You are allowed to delete only yours comments")
+            raise PermissionDenied(
+                "You are allowed to delete only yours comments"
+            )
         return super().destroy(request, *args, **kwargs)
 
 
